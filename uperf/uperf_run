@@ -593,6 +593,8 @@ ARGUMENT_LIST=(
 	"tests"
 	"time"
 	"time_delay"
+	"server_numa_node"
+	"client_numa_node"
 )
 
 NO_ARGUMENTS=(
