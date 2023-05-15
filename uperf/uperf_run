@@ -81,6 +81,8 @@ client_ips=""
 results_prefix=""
 use_pbench_version=0
 time_delay=0
+server_numa_node=""
+client_numa_node=""
 
 #
 # User specific code here.
@@ -103,6 +105,8 @@ usage()
 	echo "  --tools_git: Pointer to the test_tools git.  Default is ${tools_git}.  Top directory is always test_tools"
 	echo " --use_pbench_version: Instead of running the wrappers version"
 	echo "     of linpack, use pbench-linpack when pbench is requested"
+	echo " --server_numa_node: Set the numa node of the server process (requires use_pbench_version to be 1)"
+	echo " --client_numa_node: Set the numa node of the server process (requires use_pbench_version to be 1)"
 	source test_tools/general_setup --usage
 }
 
@@ -533,11 +537,20 @@ run_pbench_uperf_test()
 		#
 		server_ips_use=`echo $server_ips | cut -d',' -f1-$networks_to_run`
 		client_ips_use=`echo $client_ips | cut -d',' -f1-$networks_to_run`
-		echo pbench-uperf  -r $execution_time -m $packet_size -p tcp -i $numb_jobs -S $server_ips_use -C $client_ips_use --config=${to_tuned_setting} ${max_stddev} -t ${tests} >> /tmp/net_log
+
+		numa_args=""
+		if [ $server_numa_node != "" ];then
+			numa_args="$numa_args --server-node=$server_numa_node"
+		fi
+		if [ $client_numa_node != "" ];then
+			numa_args="$numa_args --client-node=$client_numa_node"
+		fi
+
+		echo pbench-uperf  -r $execution_time -m $packet_size -p tcp -i $numb_jobs -S $server_ips_use -C $client_ips_use --config=${to_tuned_setting} ${max_stddev} -t ${tests} ${numa_args} >> /tmp/net_log
 		#
 		# Start the pbench uperf test.
 		#
-		pbench-uperf  -r $execution_time -m $packet_size -p $packet_type -i $numb_jobs -S $server_ips_use -C $client_ips_use --config=${to_tuned_setting} ${max_stddev} -t ${tests}
+		pbench-uperf  -r $execution_time -m $packet_size -p $packet_type -i $numb_jobs -S $server_ips_use -C $client_ips_use --config=${to_tuned_setting} ${max_stddev} -t ${tests} ${numa_args}
 	else
 		echo calling execute_via_pbench >> /tmp/debugging
 		$TOOLS_BIN/execute_via_pbench --cmd_executing "$0" $arguments --test $test_name --spacing 11 --pbench_stats $to_pstats
@@ -655,6 +668,14 @@ while [[ $# -gt 0 ]]; do
 		;;
 		--use_pbench_version)
 			use_pbench_version=1
+			shift 1
+		;;
+		--server_numa_node)
+			server_numa_node=$value
+			shift 1
+		;;
+		--client_numa_node)
+			client_numa_node=$value
 			shift 1
 		;;
 		--)
